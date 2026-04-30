@@ -108,8 +108,8 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      let cor;
-      let mensagem;
+      let cor = "#ffffff";
+      let mensagem = "";
 
       if (tipo === "suporte") {
         cor = "#00FF7F";
@@ -193,7 +193,7 @@ client.on("interactionCreate", async (interaction) => {
   // BOTÕES
   if (interaction.isButton()) {
 
-    // 🔒 ASSUMIR (AGORA TRAVA)
+    // 🔒 ASSUMIR (CORRIGIDO DE VERDADE)
     if (interaction.customId === "assumir_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -203,9 +203,10 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      const jaAssumido = interaction.message.content.includes("Assumido por");
+      const currentRow = interaction.message.components[0];
 
-      if (jaAssumido) {
+      // se já estiver desativado, bloqueia
+      if (currentRow.components[0].disabled) {
         return interaction.reply({
           content: "❌ Esse ticket já foi assumido.",
           ephemeral: true
@@ -214,11 +215,12 @@ client.on("interactionCreate", async (interaction) => {
 
       const newRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId("assumido")
-          .setLabel("Assumido")
+          .setCustomId("assumir_ticket")
+          .setLabel(`Assumido por ${interaction.user.username}`)
           .setEmoji("✅")
           .setStyle(ButtonStyle.Success)
           .setDisabled(true),
+
         new ButtonBuilder()
           .setCustomId("fechar_ticket")
           .setLabel("Fechar")
@@ -227,7 +229,6 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       await interaction.update({
-        content: `🎫 Assumido por ${interaction.user}`,
         components: [newRow]
       });
     }
@@ -282,32 +283,31 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // =====================
-// 🔥 COMANDO .r (AGORA SILENCIOSO)
+// 🔥 COMANDO .r (CORRIGIDO)
 // =====================
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+  if (!message.content.startsWith(".r")) return;
 
-  if (message.content.startsWith(".r")) {
+  if (!message.member.roles.cache.has(SUPORTE_ID)) return;
 
-    if (!message.member.roles.cache.has(SUPORTE_ID)) return;
+  const args = message.content.split(" ").slice(1);
+  if (args.length < 2) return;
 
-    const args = message.content.split(" ").slice(1);
-    if (args.length < 2) return;
+  const nome = args[0].toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const tempo = args[1];
 
-    const nome = args[0].toLowerCase().replace(/[^a-z0-9-]/g, '');
-    const tempo = args[1];
+  const novoNome = `${nome}-${tempo}`;
 
-    const novoNome = `${nome}-${tempo}`;
+  try {
+    await message.channel.setName(novoNome);
+    await message.channel.setParent(CATEGORIA_ALUGADOS);
 
-    try {
-      await message.channel.setName(novoNome);
-      await message.channel.setParent(CATEGORIA_ALUGADOS);
+    // 🧹 apaga garantido
+    await message.delete().catch(() => {});
 
-      await message.delete(); // 🧹 apaga comando
-
-    } catch (err) {
-      console.error(err);
-    }
+  } catch (err) {
+    console.error(err);
   }
 });
 
