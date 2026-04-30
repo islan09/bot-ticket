@@ -1,63 +1,3 @@
-ISLAN
-adm.admislan
-Em voz
-
-Islan — 17/04/2026 22:31
-const {
-  Client,
-  GatewayIntentBits,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-
-message.txt
-10 KB
-Islan — 17/04/2026 23:36
-bot antigo
-const { 
-  Client, 
-  GatewayIntentBits, 
-  ActionRowBuilder, 
-  ButtonBuilder, 
-  ButtonStyle, 
-
-message.txt
-5 KB
-bot novo
-ISLAN [ALFA],  — 19/04/2026 14:54
-
-Islan — 20/04/2026 18:54
-https://discord.gg/aZJ54e2Em
-ISLAN [ALFA],  — 20/04/2026 20:12
-
-ISLAN [ALFA],  — 21/04/2026 00:12
-Encaminhada
-
-
-ORG ALFA - 💙  •  21/04/2026
-Encaminhada
-
-ORG ALFA - 💙  •  21/04/2026
-ISLAN [ALFA],  — 21/04/2026 01:43
-Imagem
-ISLAN [ALFA],  — 21/04/2026 16:21
-Imagem
-ISLAN [ALFA],  — 21:25
-require('dotenv').config();
-
-const {
-  Client,
-  GatewayIntentBits,
-  ActionRowBuilder,
-
-message.txt
-6 KB
-﻿
-Islan
-islan.xz
- 
- 
- 
 require('dotenv').config();
 
 const {
@@ -68,7 +8,8 @@ const {
   ButtonStyle,
   ChannelType,
   PermissionsBitField,
-  EmbedBuilder
+  EmbedBuilder,
+  StringSelectMenuBuilder
 } = require('discord.js');
 
 const { createTranscript } = require('discord-html-transcripts');
@@ -82,7 +23,7 @@ const client = new Client({
   ]
 });
 
-// 🔐 CONFIGURAÇÃO
+// 🔐 CONFIG
 const CATEGORIA_ID = "1499171154655711262";
 const SUPORTE_ID = "1493784454660096141";
 const LOGS_ID = "1499141431447650344";
@@ -98,46 +39,76 @@ client.once("ready", () => {
 client.on("interactionCreate", async (interaction) => {
 
   // =====================
-  // COMANDO /TICKET
+  // COMANDO /ticket (PAINEL)
   // =====================
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === "ticket") {
 
-      const painel = new EmbedBuilder()
-        .setTitle("🎫 Central de Suporte")
-        .setDescription(
-          "Clique no botão abaixo para abrir um ticket.\n\n" +
-          "📌 Nosso suporte irá te atender o mais rápido possível."
-        )
-        .setColor("#2b2d31")
-        .setThumbnail(interaction.guild.iconURL())
-        .setFooter({ text: "Sistema de Tickets" });
+      const embed = new EmbedBuilder()
+        .setColor('#7A00FF')
+        .setTitle('⚡ LOJINHA ADRENALINA • CONTAS FULL ROXA')
+        .setDescription(`
+🎮 Alugue contas full roxas para ganhar ap 🔥 
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("abrir_ticket")
-          .setLabel("Abrir Ticket")
-          .setEmoji("🎫")
-          .setStyle(ButtonStyle.Success)
-      );
+💰 A partir de R$2,50
+⚡ Entrega automática
+🔐 Contas seguras e verificadas
+
+🚀 Entre, jogue e domine a partida!
+
+💎 LOJINHA ADRENALINA • Rápido e seguro 🔥
+        `);
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId('ticket_select')
+        .setPlaceholder('Selecione um tipo de atendimento')
+        .addOptions([
+          {
+            label: 'Suporte',
+            description: 'Suporte para aluguel de contas',
+            value: 'suporte',
+            emoji: '📩'
+          },
+          {
+            label: 'Aluguel',
+            description: 'Alugue suas contas',
+            value: 'aluguel',
+            emoji: '🛒'
+          },
+          {
+            label: 'Vagas ADM',
+            description: 'Candidatura para staff',
+            value: 'vagas',
+            emoji: '👑'
+          }
+        ]);
+
+      const row = new ActionRowBuilder().addComponents(menu);
 
       return interaction.reply({
-        embeds: [painel],
+        embeds: [embed],
         components: [row]
       });
     }
   }
 
   // =====================
-  // BOTÕES
+  // SELECT MENU (CRIAR TICKET)
   // =====================
-  if (interaction.isButton()) {
+  if (interaction.isStringSelectMenu()) {
 
-    // 🎫 ABRIR TICKET
-    if (interaction.customId === "abrir_ticket") {
+    if (interaction.customId === 'ticket_select') {
+
+      const tipo = interaction.values[0];
+
+      const nomes = {
+        suporte: 'suporte',
+        aluguel: 'aluguel',
+        vagas: 'vagas'
+      };
 
       const existente = interaction.guild.channels.cache.find(
-        c => c.name === `ticket-${interaction.user.id}`
+        c => c.name === `ticket-${nomes[tipo]}-${interaction.user.id}`
       );
 
       if (existente) {
@@ -148,7 +119,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       const canal = await interaction.guild.channels.create({
-        name: `ticket-${interaction.user.id}`,
+        name: `ticket-${nomes[tipo]}-${interaction.user.id}`,
         type: ChannelType.GuildText,
         parent: CATEGORIA_ID,
         permissionOverwrites: [
@@ -190,7 +161,7 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       const embed = new EmbedBuilder()
-        .setTitle("🎫 Ticket Aberto")
+        .setTitle(`🎫 Ticket - ${nomes[tipo]}`)
         .setDescription("Explique seu problema e aguarde atendimento.")
         .setColor("Green");
 
@@ -205,13 +176,19 @@ client.on("interactionCreate", async (interaction) => {
         ephemeral: true
       });
     }
+  }
 
-    // 👤 ASSUMIR TICKET
+  // =====================
+  // BOTÕES
+  // =====================
+  if (interaction.isButton()) {
+
+    // 👤 ASSUMIR
     if (interaction.customId === "assumir_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
         return interaction.reply({
-          content: "❌ Apenas suporte pode assumir tickets.",
+          content: "❌ Apenas suporte pode assumir.",
           ephemeral: true
         });
       }
@@ -221,12 +198,12 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    // 🔒 FECHAR TICKET
+    // 🔒 FECHAR
     if (interaction.customId === "fechar_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
         return interaction.reply({
-          content: "❌ Apenas suporte pode fechar tickets.",
+          content: "❌ Apenas suporte pode fechar.",
           ephemeral: true
         });
       }
@@ -251,9 +228,7 @@ client.on("interactionCreate", async (interaction) => {
               new EmbedBuilder()
                 .setTitle("📁 Ticket Fechado")
                 .setDescription(`Canal: ${interaction.channel.name}`)
-                .addFields(
-                  { name: "Fechado por", value: `${interaction.user}` }
-                )
+                .addFields({ name: "Fechado por", value: `${interaction.user}` })
                 .setColor("Red")
             ],
             files: [{
