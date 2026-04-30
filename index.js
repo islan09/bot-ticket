@@ -34,9 +34,13 @@ client.once("ready", () => {
 });
 
 // =====================
+// INTERAÇÕES
+// =====================
 client.on("interactionCreate", async (interaction) => {
 
-  // 🎫 COMANDO /ticket
+  // =====================
+  // /ticket (PAINEL)
+  // =====================
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === "ticket") {
 
@@ -44,16 +48,18 @@ client.on("interactionCreate", async (interaction) => {
         .setColor('#7A00FF')
         .setTitle('⚡ LOJINHA ADRENALINA • CONTAS FULL ROXA')
         .setDescription(`
-🎮 Alugue contas full roxas para ganhar ap 🔥 
+🎮 **Alugue contas full roxas para ganhar AP 🔥**
 
-💰 A partir de R$2,50
+💰 A partir de **R$2,50**
 ⚡ Entrega automática
 🔐 Contas seguras e verificadas
 
 🚀 Entre, jogue e domine a partida!
 
-💎 LOJINHA ADRENALINA • Rápido e seguro 🔥
-        `);
+💎 **LOJINHA ADRENALINA • Rápido e seguro 🔥**
+        `)
+        .setThumbnail(interaction.guild.iconURL())
+        .setFooter({ text: "Selecione uma opção abaixo 👇" });
 
       const menu = new StringSelectMenuBuilder()
         .setCustomId('ticket_select')
@@ -61,19 +67,19 @@ client.on("interactionCreate", async (interaction) => {
         .addOptions([
           {
             label: 'Suporte',
-            description: 'Suporte para aluguel de contas',
+            description: 'Ajuda geral',
             value: 'suporte',
             emoji: '📩'
           },
           {
             label: 'Aluguel',
-            description: 'Alugue suas contas',
+            description: 'Comprar contas',
             value: 'aluguel',
             emoji: '🛒'
           },
           {
             label: 'Vagas ADM',
-            description: 'Candidatura para staff',
+            description: 'Entrar na staff',
             value: 'vagas',
             emoji: '👑'
           }
@@ -89,20 +95,24 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   // =====================
-  // 🎫 CRIAR TICKET
+  // SELECT MENU
+  // =====================
   if (interaction.isStringSelectMenu()) {
 
     if (interaction.customId === 'ticket_select') {
 
       const tipo = interaction.values[0];
 
-      const nomeUser = interaction.user.username
-        .toLowerCase()
-        .replace(/[^a-z0-9]/gi, '');
+      const nomes = {
+        suporte: 'suporte',
+        aluguel: 'aluguel',
+        vagas: 'vagas-adm'
+      };
 
-      // 🔒 BLOQUEIA QUALQUER TICKET JÁ ABERTO
+      const nomeUsuario = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
+
       const existente = interaction.guild.channels.cache.find(
-        c => c.name.includes(nomeUser)
+        c => c.name === `ticket-${nomes[tipo]}-${nomeUsuario}`
       );
 
       if (existente) {
@@ -113,7 +123,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       const canal = await interaction.guild.channels.create({
-        name: `${tipo}-${nomeUser}`,
+        name: `ticket-${nomes[tipo]}-${nomeUsuario}`,
         type: ChannelType.GuildText,
         parent: CATEGORIA_ID,
         permissionOverwrites: [
@@ -140,7 +150,7 @@ client.on("interactionCreate", async (interaction) => {
         ]
       });
 
-      const row = new ActionRowBuilder().addComponents(
+      const botoes = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("assumir_ticket")
           .setLabel("Assumir")
@@ -155,16 +165,19 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       const embed = new EmbedBuilder()
-        .setTitle(`🎫 Ticket - ${tipo}`)
-        .setDescription(`👋 Olá ${interaction.user}
-
-Explique seu problema e aguarde atendimento.`)
-        .setColor("Green");
+        .setColor("#00ff88")
+        .setTitle("🎫 Ticket Aberto")
+        .addFields(
+          { name: "👤 Usuário", value: `${interaction.user}`, inline: true },
+          { name: "📂 Tipo", value: nomes[tipo], inline: true }
+        )
+        .setDescription("Descreva seu problema e aguarde o suporte.")
+        .setFooter({ text: "Equipe Adrenalina 🚀" });
 
       await canal.send({
         content: `<@${interaction.user.id}> <@&${SUPORTE_ID}>`,
         embeds: [embed],
-        components: [row]
+        components: [botoes]
       });
 
       return interaction.reply({
@@ -175,7 +188,8 @@ Explique seu problema e aguarde atendimento.`)
   }
 
   // =====================
-  // 🔘 BOTÕES
+  // BOTÕES
+  // =====================
   if (interaction.isButton()) {
 
     // 👤 ASSUMIR
@@ -204,7 +218,7 @@ Explique seu problema e aguarde atendimento.`)
       }
 
       await interaction.reply({
-        content: "🔒 Gerando transcript...",
+        content: "🔒 Fechando ticket...",
         ephemeral: true
       });
 
@@ -222,8 +236,10 @@ Explique seu problema e aguarde atendimento.`)
             embeds: [
               new EmbedBuilder()
                 .setTitle("📁 Ticket Fechado")
-                .setDescription(`Canal: ${interaction.channel.name}`)
-                .addFields({ name: "Fechado por", value: `${interaction.user}` })
+                .addFields(
+                  { name: "Canal", value: `${interaction.channel.name}` },
+                  { name: "Fechado por", value: `${interaction.user}` }
+                )
                 .setColor("Red")
             ],
             files: [{
