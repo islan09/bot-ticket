@@ -36,7 +36,7 @@ client.once("ready", () => {
 // =====================
 client.on("interactionCreate", async (interaction) => {
 
-  // 🔹 PAINEL
+  // 🎫 COMANDO /ticket
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === "ticket") {
 
@@ -100,9 +100,9 @@ client.on("interactionCreate", async (interaction) => {
         .toLowerCase()
         .replace(/[^a-z0-9]/gi, '');
 
-      // 🔎 verifica se já existe
+      // 🔒 BLOQUEIA QUALQUER TICKET JÁ ABERTO
       const existente = interaction.guild.channels.cache.find(
-        c => c.name === `${tipo}-${nomeUser}`
+        c => c.name.includes(nomeUser)
       );
 
       if (existente) {
@@ -178,6 +178,7 @@ Explique seu problema e aguarde atendimento.`)
   // 🔘 BOTÕES
   if (interaction.isButton()) {
 
+    // 👤 ASSUMIR
     if (interaction.customId === "assumir_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -192,6 +193,7 @@ Explique seu problema e aguarde atendimento.`)
       });
     }
 
+    // 🔒 FECHAR
     if (interaction.customId === "fechar_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
