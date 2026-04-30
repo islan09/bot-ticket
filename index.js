@@ -24,9 +24,15 @@ const client = new Client({
 });
 
 // 🔐 CONFIG
-const CATEGORIA_ID = "1499171154655711262";
 const SUPORTE_ID = "1493784454660096141";
 const LOGS_ID = "1499141431447650344";
+
+// 📂 CATEGORIAS (COLOCA OS IDS AQUI)
+const CATEGORIAS = {
+  suporte: "ID_SUPORTE",
+  aluguel: "ID_ALUGUEL",
+  vagas: "ID_VAGAS"
+};
 
 // ✅ BOT ONLINE
 client.once("ready", () => {
@@ -34,13 +40,9 @@ client.once("ready", () => {
 });
 
 // =====================
-// INTERAÇÕES
-// =====================
 client.on("interactionCreate", async (interaction) => {
 
-  // =====================
-  // /ticket (PAINEL)
-  // =====================
+  // 🎫 PAINEL
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === "ticket") {
 
@@ -95,24 +97,20 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   // =====================
-  // SELECT MENU
-  // =====================
+  // 🎫 CRIAR TICKET
   if (interaction.isStringSelectMenu()) {
 
     if (interaction.customId === 'ticket_select') {
 
       const tipo = interaction.values[0];
 
-      const nomes = {
-        suporte: 'suporte',
-        aluguel: 'aluguel',
-        vagas: 'vagas-adm'
-      };
+      const nomeUsuario = interaction.user.username
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
 
-      const nomeUsuario = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
-
+      // 🔒 BLOQUEIA DUPLICADO
       const existente = interaction.guild.channels.cache.find(
-        c => c.name === `ticket-${nomes[tipo]}-${nomeUsuario}`
+        c => c.name.includes(nomeUsuario)
       );
 
       if (existente) {
@@ -122,10 +120,29 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
+      // 🎨 CORES + TEXTO
+      let cor;
+      let mensagem;
+
+      if (tipo === "suporte") {
+        cor = "#00FF7F";
+        mensagem = "🛠️ Suporte geral";
+      }
+
+      if (tipo === "aluguel") {
+        cor = "#8A2BE2";
+        mensagem = "🛒 Área de aluguel";
+      }
+
+      if (tipo === "vagas") {
+        cor = "#1E90FF";
+        mensagem = "👑 Vagas para equipe";
+      }
+
       const canal = await interaction.guild.channels.create({
-        name: `ticket-${nomes[tipo]}-${nomeUsuario}`,
+        name: `${tipo}-${nomeUsuario}`,
         type: ChannelType.GuildText,
-        parent: CATEGORIA_ID,
+        parent: CATEGORIAS[tipo],
         permissionOverwrites: [
           {
             id: interaction.guild.id,
@@ -165,14 +182,14 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       const embed = new EmbedBuilder()
-        .setColor("#00ff88")
-        .setTitle("🎫 Ticket Aberto")
+        .setColor(cor)
+        .setTitle(`🎫 Ticket ${tipo.toUpperCase()}`)
         .addFields(
           { name: "👤 Usuário", value: `${interaction.user}`, inline: true },
-          { name: "📂 Tipo", value: nomes[tipo], inline: true }
+          { name: "📂 Tipo", value: mensagem, inline: true }
         )
-        .setDescription("Descreva seu problema e aguarde o suporte.")
-        .setFooter({ text: "Equipe Adrenalina 🚀" });
+        .setDescription("Explique seu pedido e aguarde atendimento.")
+        .setFooter({ text: "LOJINHA ADRENALINA 🚀" });
 
       await canal.send({
         content: `<@${interaction.user.id}> <@&${SUPORTE_ID}>`,
@@ -188,11 +205,9 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   // =====================
-  // BOTÕES
-  // =====================
+  // 🔘 BOTÕES
   if (interaction.isButton()) {
 
-    // 👤 ASSUMIR
     if (interaction.customId === "assumir_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -207,7 +222,6 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    // 🔒 FECHAR
     if (interaction.customId === "fechar_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
