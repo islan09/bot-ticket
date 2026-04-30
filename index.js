@@ -1,3 +1,63 @@
+ISLAN
+adm.admislan
+Em voz
+
+Islan — 17/04/2026 22:31
+const {
+  Client,
+  GatewayIntentBits,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+
+message.txt
+10 KB
+Islan — 17/04/2026 23:36
+bot antigo
+const { 
+  Client, 
+  GatewayIntentBits, 
+  ActionRowBuilder, 
+  ButtonBuilder, 
+  ButtonStyle, 
+
+message.txt
+5 KB
+bot novo
+ISLAN [ALFA],  — 19/04/2026 14:54
+
+Islan — 20/04/2026 18:54
+https://discord.gg/aZJ54e2Em
+ISLAN [ALFA],  — 20/04/2026 20:12
+
+ISLAN [ALFA],  — 21/04/2026 00:12
+Encaminhada
+
+
+ORG ALFA - 💙  •  21/04/2026
+Encaminhada
+
+ORG ALFA - 💙  •  21/04/2026
+ISLAN [ALFA],  — 21/04/2026 01:43
+Imagem
+ISLAN [ALFA],  — 21/04/2026 16:21
+Imagem
+ISLAN [ALFA],  — 21:25
+require('dotenv').config();
+
+const {
+  Client,
+  GatewayIntentBits,
+  ActionRowBuilder,
+
+message.txt
+6 KB
+﻿
+Islan
+islan.xz
+ 
+ 
+ 
 require('dotenv').config();
 
 const {
