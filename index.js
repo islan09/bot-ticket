@@ -34,9 +34,6 @@ const CATEGORIAS = {
   vagas: "1499171154655711262"
 };
 
-// 📦 CATEGORIA DE ALUGADOS
-const CATEGORIA_ALUGADOS = "1499479285054967848";
-
 // ✅ BOT ONLINE
 client.once("ready", () => {
   console.log(`🤖 Bot online: ${client.user.tag}`);
@@ -193,7 +190,6 @@ client.on("interactionCreate", async (interaction) => {
   // BOTÕES
   if (interaction.isButton()) {
 
-    // 🔒 ASSUMIR (CORRIGIDO DE VERDADE)
     if (interaction.customId === "assumir_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -205,7 +201,6 @@ client.on("interactionCreate", async (interaction) => {
 
       const currentRow = interaction.message.components[0];
 
-      // se já estiver desativado, bloqueia
       if (currentRow.components[0].disabled) {
         return interaction.reply({
           content: "❌ Esse ticket já foi assumido.",
@@ -233,7 +228,6 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    // 🔒 FECHAR
     if (interaction.customId === "fechar_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -283,7 +277,7 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // =====================
-// 🔥 COMANDO .r (CORRIGIDO)
+// 🔥 COMANDO .r (APENAS RENOMEAR + APAGAR)
 // =====================
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
@@ -292,18 +286,15 @@ client.on("messageCreate", async (message) => {
   if (!message.member.roles.cache.has(SUPORTE_ID)) return;
 
   const args = message.content.split(" ").slice(1);
-  if (args.length < 2) return;
+  if (args.length < 1) return;
 
-  const nome = args[0].toLowerCase().replace(/[^a-z0-9-]/g, '');
-  const tempo = args[1];
-
-  const novoNome = `${nome}-${tempo}`;
+  const nome = args.join("-")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '');
 
   try {
-    await message.channel.setName(novoNome);
-    await message.channel.setParent(CATEGORIA_ALUGADOS);
+    await message.channel.setName(nome);
 
-    // 🧹 apaga garantido
     await message.delete().catch(() => {});
 
   } catch (err) {
