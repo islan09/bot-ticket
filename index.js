@@ -172,7 +172,7 @@ client.on("interactionCreate", async (interaction) => {
           { name: "📂 Tipo", value: mensagem, inline: true }
         )
         .setDescription("Explique seu pedido e aguarde atendimento.")
-        .setFooter({ text: "LOJINHA ADRENALINA 🚀" });
+        .setFooter({ text: "HD STORE 🚀" });
 
       await canal.send({
         content: `<@${interaction.user.id}> <@&${SUPORTE_ID}>`,
