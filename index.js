@@ -48,7 +48,7 @@ client.on("interactionCreate", async (interaction) => {
 
       const embed = new EmbedBuilder()
         .setColor('#7A00FF')
-        .setTitle('⚡ LOJINHA ADRENALINA • CONTAS FULL ROXA')
+        .setTitle('⚡HD STORE • CONTAS FULL ROXA')
         .setDescription(`
 🎮 **Alugue contas full roxas para ganhar AP 🔥**
 
@@ -58,7 +58,7 @@ client.on("interactionCreate", async (interaction) => {
 
 🚀 Entre, jogue e domine a partida!
 
-💎 **LOJINHA ADRENALINA • Rápido e seguro 🔥**
+💎 **HD STORE • Rápido e seguro 🔥**
         `)
         .setThumbnail(interaction.guild.iconURL())
         .setFooter({ text: "Selecione uma opção abaixo 👇" });
