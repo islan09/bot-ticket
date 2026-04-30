@@ -8,11 +8,8 @@ const {
   ButtonStyle,
   ChannelType,
   PermissionsBitField,
-  EmbedBuilder,
-  StringSelectMenuBuilder
+  EmbedBuilder
 } = require('discord.js');
-
-const { createTranscript } = require('discord-html-transcripts');
 
 const client = new Client({
   intents: [
@@ -25,9 +22,6 @@ const client = new Client({
 
 // 🔐 CONFIG
 const SUPORTE_ID = "1493784454660096141";
-const LOGS_ID = "1499141431447650344";
-
-// 📂 CATEGORIA ONDE VÃO FICAR AS COMPRAS
 const CATEGORIA_COMPRAS = "1499171491688874024";
 
 // ✅ BOT ONLINE
@@ -36,106 +30,116 @@ client.once("ready", () => {
 });
 
 // =====================
+// 🔘 INTERAÇÕES
+// =====================
 client.on("interactionCreate", async (interaction) => {
 
+  if (!interaction.isButton()) return;
+
   // =====================
-  // 🛒 BOTÃO DE COMPRA
+  // 🛒 COMPRAR
   // =====================
-  if (interaction.isButton()) {
+  if (interaction.customId.startsWith("comprar_")) {
 
-    if (interaction.customId.startsWith("comprar_")) {
+    const produto = interaction.customId.split("_")[1];
+    const user = interaction.user;
 
-      const produto = interaction.customId.split("_")[1];
-      const user = interaction.user;
+    // 🔒 NÃO DEIXA CRIAR DUPLICADO
+    const existente = interaction.guild.channels.cache.find(c =>
+      c.name === `🛒-${user.username.toLowerCase()}`
+    );
 
-      // cria canal privado
-      const canal = await interaction.guild.channels.create({
-        name: `🛒-${user.username}`,
-        type: ChannelType.GuildText,
-        parent: CATEGORIA_COMPRAS,
-        permissionOverwrites: [
-          {
-            id: interaction.guild.id,
-            deny: [PermissionsBitField.Flags.ViewChannel]
-          },
-          {
-            id: user.id,
-            allow: [
-              PermissionsBitField.Flags.ViewChannel,
-              PermissionsBitField.Flags.SendMessages
-            ]
-          },
-          {
-            id: SUPORTE_ID,
-            allow: [
-              PermissionsBitField.Flags.ViewChannel,
-              PermissionsBitField.Flags.SendMessages
-            ]
-          }
-        ]
-      });
-
-      // embed estilo loja
-      const embed = new EmbedBuilder()
-        .setColor("Green")
-        .setTitle("🧾 Revisão do Pedido")
-        .addFields(
-          { name: "📦 Produto", value: produto, inline: true },
-          { name: "💰 Preço", value: "R$20", inline: true },
-          { name: "📦 Estoque", value: "1", inline: true }
-        )
-        .setFooter({ text: "Finalize seu pedido abaixo 👇" });
-
-      const botoes = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("pagar")
-          .setLabel("Pagar")
-          .setStyle(ButtonStyle.Success),
-
-        new ButtonBuilder()
-          .setCustomId("cancelar")
-          .setLabel("Cancelar")
-          .setStyle(ButtonStyle.Danger)
-      );
-
-      await canal.send({
-        content: `<@${user.id}>`,
-        embeds: [embed],
-        components: [botoes]
-      });
-
+    if (existente) {
       return interaction.reply({
-        content: "🛒 Pedido criado!",
+        content: "❌ Você já tem um pedido aberto.",
         ephemeral: true
       });
     }
 
-    // =====================
-    // ❌ CANCELAR COMPRA
-    // =====================
-    if (interaction.customId === "cancelar") {
-      return interaction.channel.delete();
-    }
+    const canal = await interaction.guild.channels.create({
+      name: `🛒-${user.username.toLowerCase()}`,
+      type: ChannelType.GuildText,
+      parent: CATEGORIA_COMPRAS,
+      permissionOverwrites: [
+        {
+          id: interaction.guild.id,
+          deny: [PermissionsBitField.Flags.ViewChannel]
+        },
+        {
+          id: user.id,
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.SendMessages
+          ]
+        },
+        {
+          id: SUPORTE_ID,
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.SendMessages
+          ]
+        }
+      ]
+    });
 
-    // =====================
-    // 💰 PAGAR (placeholder)
-    // =====================
-    if (interaction.customId === "pagar") {
-      return interaction.reply({
-        content: "💰 Aqui você pode integrar pagamento (PIX, etc)",
-        ephemeral: true
-      });
-    }
+    const embed = new EmbedBuilder()
+      .setColor("Green")
+      .setTitle("🧾 Revisão do Pedido")
+      .addFields(
+        { name: "📦 Produto", value: produto, inline: true },
+        { name: "💰 Preço", value: "R$20", inline: true },
+        { name: "📦 Estoque", value: "1", inline: true }
+      )
+      .setFooter({ text: "Finalize abaixo 👇" });
+
+    const botoes = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("pagar")
+        .setLabel("Ir para pagamento")
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId("cancelar")
+        .setLabel("Cancelar")
+        .setStyle(ButtonStyle.Danger)
+    );
+
+    await canal.send({
+      content: `<@${user.id}>`,
+      embeds: [embed],
+      components: [botoes]
+    });
+
+    return interaction.reply({
+      content: "✅ Pedido criado!",
+      ephemeral: true
+    });
+  }
+
+  // =====================
+  // ❌ CANCELAR
+  // =====================
+  if (interaction.customId === "cancelar") {
+    return interaction.channel.delete().catch(() => {});
+  }
+
+  // =====================
+  // 💰 PAGAR
+  // =====================
+  if (interaction.customId === "pagar") {
+    return interaction.reply({
+      content: "💰 Sistema de pagamento aqui (PIX depois)",
+      ephemeral: true
+    });
   }
 });
 
 // =====================
-// 📦 COMANDO PARA CRIAR PAINEL DE PRODUTO
+// 📦 COMANDO .PAINEL
 // =====================
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  // comando simples: .painel
   if (message.content === ".painel") {
 
     if (!message.member.roles.cache.has(SUPORTE_ID)) return;
@@ -144,9 +148,9 @@ client.on("messageCreate", async (message) => {
       .setColor("#7A00FF")
       .setTitle("🔥 CONTA FULL ROXA")
       .setDescription(`
-💎 Conta completa pronta pra uso
+💎 Conta pronta pra uso
 
-💰 **Preço:** R$20
+💰 **Preço:** R$20  
 📦 **Estoque:** 1
       `);
 
@@ -158,10 +162,13 @@ client.on("messageCreate", async (message) => {
         .setStyle(ButtonStyle.Primary)
     );
 
-    message.channel.send({
+    await message.channel.send({
       embeds: [embed],
       components: [botao]
     });
+
+    // 🧹 apaga comando
+    await message.delete().catch(() => {});
   }
 });
 
