@@ -29,9 +29,9 @@ const LOGS_ID = "1499141431447650344";
 
 // 📂 CATEGORIAS
 const CATEGORIAS = {
-  suporte: "ID_SUPORTE",
-  aluguel: "ID_ALUGUEL",
-  vagas: "ID_VAGAS"
+  suporte: "1499480860137619619",
+  aluguel: "1499481186785951945",
+  vagas: "1499480983265611926"
 };
 
 // 📦 CATEGORIA DE ALUGADOS
