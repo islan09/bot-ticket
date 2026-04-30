@@ -27,12 +27,15 @@ const client = new Client({
 const SUPORTE_ID = "1493784454660096141";
 const LOGS_ID = "1499141431447650344";
 
-// 📂 CATEGORIAS (COLOCA OS IDS AQUI)
+// 📂 CATEGORIAS
 const CATEGORIAS = {
   suporte: "ID_SUPORTE",
   aluguel: "ID_ALUGUEL",
   vagas: "ID_VAGAS"
 };
+
+// 📦 CATEGORIA DE ALUGADOS
+const CATEGORIA_ALUGADOS = "1499479285054967848";
 
 // ✅ BOT ONLINE
 client.once("ready", () => {
@@ -67,24 +70,9 @@ client.on("interactionCreate", async (interaction) => {
         .setCustomId('ticket_select')
         .setPlaceholder('Selecione um tipo de atendimento')
         .addOptions([
-          {
-            label: 'Suporte',
-            description: 'Ajuda geral',
-            value: 'suporte',
-            emoji: '📩'
-          },
-          {
-            label: 'Aluguel',
-            description: 'Comprar contas',
-            value: 'aluguel',
-            emoji: '🛒'
-          },
-          {
-            label: 'Vagas ADM',
-            description: 'Entrar na staff',
-            value: 'vagas',
-            emoji: '👑'
-          }
+          { label: 'Suporte', value: 'suporte', emoji: '📩' },
+          { label: 'Aluguel', value: 'aluguel', emoji: '🛒' },
+          { label: 'Vagas ADM', value: 'vagas', emoji: '👑' }
         ]);
 
       const row = new ActionRowBuilder().addComponents(menu);
@@ -108,7 +96,6 @@ client.on("interactionCreate", async (interaction) => {
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '');
 
-      // 🔒 BLOQUEIA DUPLICADO
       const existente = interaction.guild.channels.cache.find(
         c => c.name.includes(nomeUsuario)
       );
@@ -120,7 +107,6 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // 🎨 CORES + TEXTO
       let cor;
       let mensagem;
 
@@ -173,7 +159,6 @@ client.on("interactionCreate", async (interaction) => {
           .setLabel("Assumir")
           .setEmoji("👤")
           .setStyle(ButtonStyle.Primary),
-
         new ButtonBuilder()
           .setCustomId("fechar_ticket")
           .setLabel("Fechar")
@@ -205,7 +190,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   // =====================
-  // 🔘 BOTÕES
+  // BOTÕES
   if (interaction.isButton()) {
 
     if (interaction.customId === "assumir_ticket") {
@@ -266,6 +251,41 @@ client.on("interactionCreate", async (interaction) => {
         await interaction.channel.delete();
 
       }, 2000);
+    }
+  }
+});
+
+// =====================
+// 🔥 COMANDO .r (RENOMEAR + MOVER)
+// =====================
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+
+  if (message.content.startsWith(".r")) {
+
+    if (!message.member.roles.cache.has(SUPORTE_ID)) {
+      return message.reply("❌ Apenas staff pode usar esse comando.");
+    }
+
+    const args = message.content.split(" ").slice(1);
+
+    if (args.length < 2) {
+      return message.reply("❌ Use: `.r nome tempo`\nEx: `.r conta-alugada 12h`");
+    }
+
+    const nome = args[0].toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const tempo = args[1];
+
+    const novoNome = `${nome}-${tempo}`;
+
+    try {
+      await message.channel.setName(novoNome);
+      await message.channel.setParent(CATEGORIA_ALUGADOS);
+
+      await message.channel.send(`✅ Canal atualizado para **${novoNome}** e movido para alugados.`);
+    } catch (err) {
+      console.error(err);
+      message.reply("❌ Erro ao atualizar canal.");
     }
   }
 });
