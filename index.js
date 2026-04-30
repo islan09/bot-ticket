@@ -98,7 +98,6 @@ client.on("interactionCreate", async (interaction) => {
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '');
 
-      // 🔒 CORREÇÃO DUPLICADO
       const existente = interaction.guild.channels.cache.find(
         c => c.name === `${tipo}-${nomeUsuario}`
       );
@@ -194,6 +193,7 @@ client.on("interactionCreate", async (interaction) => {
   // BOTÕES
   if (interaction.isButton()) {
 
+    // 🔒 ASSUMIR (AGORA TRAVA)
     if (interaction.customId === "assumir_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -203,11 +203,36 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      return interaction.reply({
-        content: `👤 Ticket assumido por ${interaction.user}`
+      const jaAssumido = interaction.message.content.includes("Assumido por");
+
+      if (jaAssumido) {
+        return interaction.reply({
+          content: "❌ Esse ticket já foi assumido.",
+          ephemeral: true
+        });
+      }
+
+      const newRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("assumido")
+          .setLabel("Assumido")
+          .setEmoji("✅")
+          .setStyle(ButtonStyle.Success)
+          .setDisabled(true),
+        new ButtonBuilder()
+          .setCustomId("fechar_ticket")
+          .setLabel("Fechar")
+          .setEmoji("🔒")
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await interaction.update({
+        content: `🎫 Assumido por ${interaction.user}`,
+        components: [newRow]
       });
     }
 
+    // 🔒 FECHAR
     if (interaction.customId === "fechar_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -257,22 +282,17 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // =====================
-// 🔥 COMANDO .r
+// 🔥 COMANDO .r (AGORA SILENCIOSO)
 // =====================
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
   if (message.content.startsWith(".r")) {
 
-    if (!message.member.roles.cache.has(SUPORTE_ID)) {
-      return message.reply("❌ Apenas staff pode usar esse comando.");
-    }
+    if (!message.member.roles.cache.has(SUPORTE_ID)) return;
 
     const args = message.content.split(" ").slice(1);
-
-    if (args.length < 2) {
-      return message.reply("❌ Use: `.r nome tempo`\nEx: `.r conta-alugada 12h`");
-    }
+    if (args.length < 2) return;
 
     const nome = args[0].toLowerCase().replace(/[^a-z0-9-]/g, '');
     const tempo = args[1];
@@ -283,10 +303,10 @@ client.on("messageCreate", async (message) => {
       await message.channel.setName(novoNome);
       await message.channel.setParent(CATEGORIA_ALUGADOS);
 
-      await message.channel.send(`✅ Canal atualizado para **${novoNome}** e movido para alugados.`);
+      await message.delete(); // 🧹 apaga comando
+
     } catch (err) {
       console.error(err);
-      message.reply("❌ Erro ao atualizar canal.");
     }
   }
 });
