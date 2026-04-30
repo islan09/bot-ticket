@@ -88,6 +88,8 @@ client.on("interactionCreate", async (interaction) => {
   // 🎫 CRIAR TICKET
   if (interaction.isStringSelectMenu()) {
 
+    await interaction.deferReply({ ephemeral: true });
+
     if (interaction.customId === 'ticket_select') {
 
       const tipo = interaction.values[0];
@@ -96,14 +98,14 @@ client.on("interactionCreate", async (interaction) => {
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '');
 
+      // 🔒 CORREÇÃO DUPLICADO
       const existente = interaction.guild.channels.cache.find(
-        c => c.name.includes(nomeUsuario)
+        c => c.name === `${tipo}-${nomeUsuario}`
       );
 
       if (existente) {
-        return interaction.reply({
-          content: "❌ Você já tem um ticket aberto.",
-          ephemeral: true
+        return interaction.editReply({
+          content: "❌ Você já tem um ticket aberto."
         });
       }
 
@@ -182,9 +184,8 @@ client.on("interactionCreate", async (interaction) => {
         components: [botoes]
       });
 
-      return interaction.reply({
-        content: "✅ Ticket criado com sucesso!",
-        ephemeral: true
+      return interaction.editReply({
+        content: "✅ Ticket criado com sucesso!"
       });
     }
   }
@@ -256,7 +257,7 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // =====================
-// 🔥 COMANDO .r (RENOMEAR + MOVER)
+// 🔥 COMANDO .r
 // =====================
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
