@@ -34,13 +34,9 @@ client.once("ready", () => {
 });
 
 // =====================
-// INTERAÇÕES
-// =====================
 client.on("interactionCreate", async (interaction) => {
 
-  // =====================
-  // COMANDO /ticket (PAINEL)
-  // =====================
+  // 🔹 PAINEL
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === "ticket") {
 
@@ -93,22 +89,20 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   // =====================
-  // SELECT MENU (CRIAR TICKET)
-  // =====================
+  // 🎫 CRIAR TICKET
   if (interaction.isStringSelectMenu()) {
 
     if (interaction.customId === 'ticket_select') {
 
       const tipo = interaction.values[0];
 
-      const nomes = {
-        suporte: 'suporte',
-        aluguel: 'aluguel',
-        vagas: 'vagas'
-      };
+      const nomeUser = interaction.user.username
+        .toLowerCase()
+        .replace(/[^a-z0-9]/gi, '');
 
+      // 🔎 verifica se já existe
       const existente = interaction.guild.channels.cache.find(
-        c => c.name === `ticket-${nomes[tipo]}-${interaction.user.id}`
+        c => c.name === `${tipo}-${nomeUser}`
       );
 
       if (existente) {
@@ -119,7 +113,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       const canal = await interaction.guild.channels.create({
-        name: `ticket-${nomes[tipo]}-${interaction.user.id}`,
+        name: `${tipo}-${nomeUser}`,
         type: ChannelType.GuildText,
         parent: CATEGORIA_ID,
         permissionOverwrites: [
@@ -161,8 +155,10 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       const embed = new EmbedBuilder()
-        .setTitle(`🎫 Ticket - ${nomes[tipo]}`)
-        .setDescription("Explique seu problema e aguarde atendimento.")
+        .setTitle(`🎫 Ticket - ${tipo}`)
+        .setDescription(`👋 Olá ${interaction.user}
+
+Explique seu problema e aguarde atendimento.`)
         .setColor("Green");
 
       await canal.send({
@@ -179,11 +175,9 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   // =====================
-  // BOTÕES
-  // =====================
+  // 🔘 BOTÕES
   if (interaction.isButton()) {
 
-    // 👤 ASSUMIR
     if (interaction.customId === "assumir_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -198,7 +192,6 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    // 🔒 FECHAR
     if (interaction.customId === "fechar_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
