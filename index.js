@@ -8,7 +8,8 @@ const {
   ButtonStyle,
   ChannelType,
   PermissionsBitField,
-  EmbedBuilder
+  EmbedBuilder,
+  StringSelectMenuBuilder
 } = require('discord.js');
 
 const client = new Client({
@@ -34,101 +35,119 @@ client.once("ready", () => {
 // =====================
 client.on("interactionCreate", async (interaction) => {
 
-  if (!interaction.isButton()) return;
-
   // =====================
-  // 🛒 COMPRAR
+  // 🛒 MENU (ESCOLHER PRODUTO)
   // =====================
-  if (interaction.customId.startsWith("comprar_")) {
+  if (interaction.isStringSelectMenu()) {
 
-    const produto = interaction.customId.split("_")[1];
-    const user = interaction.user;
+    if (interaction.customId === "selecionar_produto") {
 
-    // 🔒 NÃO DEIXA CRIAR DUPLICADO
-    const existente = interaction.guild.channels.cache.find(c =>
-      c.name === `🛒-${user.username.toLowerCase()}`
-    );
+      const escolha = interaction.values[0];
+      const user = interaction.user;
 
-    if (existente) {
+      // 🚫 evitar duplicado
+      const existente = interaction.guild.channels.cache.find(c =>
+        c.name === `🛒-${user.username.toLowerCase()}`
+      );
+
+      if (existente) {
+        return interaction.reply({
+          content: "❌ Você já tem um pedido aberto.",
+          ephemeral: true
+        });
+      }
+
+      let produto = "";
+      let preco = "";
+
+      if (escolha === "plano1") {
+        produto = "Bugadão 09h até 21h";
+        preco = "R$20";
+      }
+
+      if (escolha === "plano2") {
+        produto = "Bugadão 21h até 09h";
+        preco = "R$20";
+      }
+
+      if (escolha === "plano3") {
+        produto = "Bugadão 24h";
+        preco = "R$38";
+      }
+
+      const canal = await interaction.guild.channels.create({
+        name: `🛒-${user.username.toLowerCase()}`,
+        type: ChannelType.GuildText,
+        parent: CATEGORIA_COMPRAS,
+        permissionOverwrites: [
+          {
+            id: interaction.guild.id,
+            deny: [PermissionsBitField.Flags.ViewChannel]
+          },
+          {
+            id: user.id,
+            allow: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages
+            ]
+          },
+          {
+            id: SUPORTE_ID,
+            allow: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages
+            ]
+          }
+        ]
+      });
+
+      const embed = new EmbedBuilder()
+        .setColor("Green")
+        .setTitle("🧾 Revisão do Pedido")
+        .addFields(
+          { name: "📦 Produto", value: produto, inline: true },
+          { name: "💰 Preço", value: preco, inline: true },
+          { name: "📦 Estoque", value: "1", inline: true }
+        )
+        .setFooter({ text: "Finalize abaixo 👇" });
+
+      const botoes = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("pagar")
+          .setLabel("Ir para pagamento")
+          .setStyle(ButtonStyle.Success),
+
+        new ButtonBuilder()
+          .setCustomId("cancelar")
+          .setLabel("Cancelar")
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await canal.send({
+        content: `<@${user.id}>`,
+        embeds: [embed],
+        components: [botoes]
+      });
+
       return interaction.reply({
-        content: "❌ Você já tem um pedido aberto.",
+        content: "✅ Pedido criado!",
         ephemeral: true
       });
     }
-
-    const canal = await interaction.guild.channels.create({
-      name: `🛒-${user.username.toLowerCase()}`,
-      type: ChannelType.GuildText,
-      parent: CATEGORIA_COMPRAS,
-      permissionOverwrites: [
-        {
-          id: interaction.guild.id,
-          deny: [PermissionsBitField.Flags.ViewChannel]
-        },
-        {
-          id: user.id,
-          allow: [
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages
-          ]
-        },
-        {
-          id: SUPORTE_ID,
-          allow: [
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages
-          ]
-        }
-      ]
-    });
-
-    const embed = new EmbedBuilder()
-      .setColor("Green")
-      .setTitle("🧾 Revisão do Pedido")
-      .addFields(
-        { name: "📦 Produto", value: produto, inline: true },
-        { name: "💰 Preço", value: "R$20", inline: true },
-        { name: "📦 Estoque", value: "1", inline: true }
-      )
-      .setFooter({ text: "Finalize abaixo 👇" });
-
-    const botoes = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("pagar")
-        .setLabel("Ir para pagamento")
-        .setStyle(ButtonStyle.Success),
-
-      new ButtonBuilder()
-        .setCustomId("cancelar")
-        .setLabel("Cancelar")
-        .setStyle(ButtonStyle.Danger)
-    );
-
-    await canal.send({
-      content: `<@${user.id}>`,
-      embeds: [embed],
-      components: [botoes]
-    });
-
-    return interaction.reply({
-      content: "✅ Pedido criado!",
-      ephemeral: true
-    });
   }
 
   // =====================
-  // ❌ CANCELAR
+  // 🔘 BOTÕES
   // =====================
+  if (!interaction.isButton()) return;
+
   if (interaction.customId === "cancelar") {
     return interaction.channel.delete().catch(() => {});
   }
 
-  // =====================
-  // 💰 PAGAR
-  // =====================
   if (interaction.customId === "pagar") {
     return interaction.reply({
-      content: "💰 Sistema de pagamento aqui (PIX depois)",
+      content: "💰 Aqui você pode integrar PIX depois",
       ephemeral: true
     });
   }
@@ -150,21 +169,35 @@ client.on("messageCreate", async (message) => {
       .setDescription(`
 💎 Conta pronta pra uso
 
-💰 **Preço:** R$20  
-📦 **Estoque:** 1
+📦 Escolha uma opção abaixo 👇
       `);
 
-    const botao = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("comprar_fullroxa")
-        .setLabel("Comprar")
-        .setEmoji("🛒")
-        .setStyle(ButtonStyle.Primary)
-    );
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("selecionar_produto")
+      .setPlaceholder("Selecione o plano")
+      .addOptions([
+        {
+          label: "Bugadão 09h até 21h",
+          description: "R$20 | Estoque: 1",
+          value: "plano1"
+        },
+        {
+          label: "Bugadão 21h até 09h",
+          description: "R$20 | Estoque: 1",
+          value: "plano2"
+        },
+        {
+          label: "Bugadão 24h",
+          description: "R$38 | Estoque: 1",
+          value: "plano3"
+        }
+      ]);
+
+    const row = new ActionRowBuilder().addComponents(menu);
 
     await message.channel.send({
       embeds: [embed],
-      components: [botao]
+      components: [row]
     });
 
     // 🧹 apaga comando
