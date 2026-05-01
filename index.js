@@ -40,16 +40,18 @@ client.once("ready", () => {
 });
 
 // =====================
-client.on("interactionCreate", async (interaction) => {
+// 📌 COMANDO .ticket (SEM /ticket)
+// =====================
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
 
-  // 🎫 PAINEL
-  if (interaction.isChatInputCommand()) {
-    if (interaction.commandName === "ticket") {
+  // 🔥 PAINEL
+  if (message.content === ".ticket") {
 
-      const embed = new EmbedBuilder()
-        .setColor('#7A00FF')
-        .setTitle('⚡HD STORE • CONTAS FULL ROXA')
-        .setDescription(`
+    const embed = new EmbedBuilder()
+      .setColor('#7A00FF')
+      .setTitle('⚡HD STORE • CONTAS FULL ROXA')
+      .setDescription(`
 🎮 **Alugue contas full roxas para ganhar AP 🔥**
 
 💰 A partir de **R$2,50**
@@ -59,27 +61,56 @@ client.on("interactionCreate", async (interaction) => {
 🚀 Entre, jogue e domine a partida!
 
 💎 **HD STORE • Rápido e seguro 🔥**
-        `)
-        .setThumbnail(interaction.guild.iconURL())
-        .setFooter({ text: "Selecione uma opção abaixo 👇" });
+      `)
+      .setThumbnail(message.guild.iconURL())
+      .setFooter({ text: "Selecione uma opção abaixo 👇" });
 
-      const menu = new StringSelectMenuBuilder()
-        .setCustomId('ticket_select')
-        .setPlaceholder('Selecione um tipo de atendimento')
-        .addOptions([
-          { label: 'Suporte', value: 'suporte', emoji: '📩' },
-          { label: 'Aluguel', value: 'aluguel', emoji: '🛒' },
-          { label: 'Vagas ADM', value: 'vagas', emoji: '👑' }
-        ]);
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId('ticket_select')
+      .setPlaceholder('Selecione um tipo de atendimento')
+      .addOptions([
+        { label: 'Suporte', value: 'suporte', emoji: '📩' },
+        { label: 'Aluguel', value: 'aluguel', emoji: '🛒' },
+        { label: 'Vagas ADM', value: 'vagas', emoji: '👑' }
+      ]);
 
-      const row = new ActionRowBuilder().addComponents(menu);
+    const row = new ActionRowBuilder().addComponents(menu);
 
-      return interaction.reply({
-        embeds: [embed],
-        components: [row]
-      });
+    await message.channel.send({
+      embeds: [embed],
+      components: [row]
+    });
+
+    await message.delete().catch(() => {});
+  }
+
+  // =====================
+  // 🔥 COMANDO .r (RENOMEAR)
+  // =====================
+  if (message.content.startsWith(".r")) {
+
+    if (!message.member.roles.cache.has(SUPORTE_ID)) return;
+
+    const args = message.content.split(" ").slice(1);
+    if (args.length < 1) return;
+
+    const nome = args.join("-")
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '');
+
+    try {
+      await message.channel.setName(nome);
+      await message.delete().catch(() => {});
+    } catch (err) {
+      console.error(err);
     }
   }
+});
+
+// =====================
+// 🎫 INTERAÇÕES
+// =====================
+client.on("interactionCreate", async (interaction) => {
 
   // =====================
   // 🎫 CRIAR TICKET
@@ -157,6 +188,7 @@ client.on("interactionCreate", async (interaction) => {
           .setLabel("Assumir")
           .setEmoji("👤")
           .setStyle(ButtonStyle.Primary),
+
         new ButtonBuilder()
           .setCustomId("fechar_ticket")
           .setLabel("Fechar")
@@ -187,9 +219,11 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   // =====================
-  // BOTÕES
+  // 🔘 BOTÕES
+  // =====================
   if (interaction.isButton()) {
 
+    // 👤 ASSUMIR
     if (interaction.customId === "assumir_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -203,7 +237,7 @@ client.on("interactionCreate", async (interaction) => {
 
       if (currentRow.components[0].disabled) {
         return interaction.reply({
-          content: "❌ Esse ticket já foi assumido.",
+          content: "❌ Já foi assumido.",
           ephemeral: true
         });
       }
@@ -223,11 +257,10 @@ client.on("interactionCreate", async (interaction) => {
           .setStyle(ButtonStyle.Danger)
       );
 
-      await interaction.update({
-        components: [newRow]
-      });
+      await interaction.update({ components: [newRow] });
     }
 
+    // 🔒 FECHAR
     if (interaction.customId === "fechar_ticket") {
 
       if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
@@ -273,32 +306,6 @@ client.on("interactionCreate", async (interaction) => {
 
       }, 2000);
     }
-  }
-});
-
-// =====================
-// 🔥 COMANDO .r (APENAS RENOMEAR + APAGAR)
-// =====================
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-  if (!message.content.startsWith(".r")) return;
-
-  if (!message.member.roles.cache.has(SUPORTE_ID)) return;
-
-  const args = message.content.split(" ").slice(1);
-  if (args.length < 1) return;
-
-  const nome = args.join("-")
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '');
-
-  try {
-    await message.channel.setName(nome);
-
-    await message.delete().catch(() => {});
-
-  } catch (err) {
-    console.error(err);
   }
 });
 
