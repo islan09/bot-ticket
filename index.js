@@ -26,6 +26,7 @@ const client = new Client({
 // 🔐 CONFIG
 const SUPORTE_ID = "1493784454660096141";
 const LOGS_ID = "1499141431447650344";
+const FEEDBACK_CHANNEL_ID = "1499501012845592586";
 
 // 📂 CATEGORIAS
 const CATEGORIAS = {
@@ -40,12 +41,12 @@ client.once("ready", () => {
 });
 
 // =====================
-// 📌 COMANDO .ticket (SEM /ticket)
+// 📌 COMANDOS
 // =====================
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  // 🔥 PAINEL
+  // 🎫 PAINEL TICKET
   if (message.content === ".ticket") {
 
     const embed = new EmbedBuilder()
@@ -84,9 +85,7 @@ client.on("messageCreate", async (message) => {
     await message.delete().catch(() => {});
   }
 
-  // =====================
-  // 🔥 COMANDO .r (RENOMEAR)
-  // =====================
+  // 🔥 RENOMEAR
   if (message.content.startsWith(".r")) {
 
     if (!message.member.roles.cache.has(SUPORTE_ID)) return;
@@ -105,6 +104,40 @@ client.on("messageCreate", async (message) => {
       console.error(err);
     }
   }
+
+  // ⭐ COMANDO FEEDBACK
+  if (message.content.startsWith(".feedback")) {
+
+    const args = message.content.split(" ").slice(1);
+    if (args.length < 2) return;
+
+    const estrelas = parseInt(args[0]);
+    const texto = args.slice(1).join(" ");
+
+    if (estrelas < 1 || estrelas > 5) return;
+
+    const estrelasVisual = "⭐".repeat(estrelas);
+
+    const embed = new EmbedBuilder()
+      .setColor("Gold")
+      .setTitle("⭐ Novo Feedback")
+      .addFields(
+        { name: "👤 Cliente", value: `${message.author}`, inline: true },
+        { name: "⭐ Avaliação", value: estrelasVisual, inline: true }
+      )
+      .setDescription(`💬 ${texto}`)
+      .setFooter({ text: "HD STORE 🚀" })
+      .setTimestamp();
+
+    const canal = message.guild.channels.cache.get(FEEDBACK_CHANNEL_ID);
+
+    if (canal) {
+      canal.send({ embeds: [embed] });
+    }
+
+    await message.delete().catch(() => {});
+  }
+
 });
 
 // =====================
@@ -112,8 +145,6 @@ client.on("messageCreate", async (message) => {
 // =====================
 client.on("interactionCreate", async (interaction) => {
 
-  // =====================
-  // 🎫 CRIAR TICKET
   if (interaction.isStringSelectMenu()) {
 
     await interaction.deferReply({ ephemeral: true });
@@ -136,24 +167,6 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      let cor = "#ffffff";
-      let mensagem = "";
-
-      if (tipo === "suporte") {
-        cor = "#00FF7F";
-        mensagem = "🛠️ Suporte geral";
-      }
-
-      if (tipo === "aluguel") {
-        cor = "#8A2BE2";
-        mensagem = "🛒 Área de aluguel";
-      }
-
-      if (tipo === "vagas") {
-        cor = "#1E90FF";
-        mensagem = "👑 Vagas para equipe";
-      }
-
       const canal = await interaction.guild.channels.create({
         name: `${tipo}-${nomeUsuario}`,
         type: ChannelType.GuildText,
@@ -167,16 +180,14 @@ client.on("interactionCreate", async (interaction) => {
             id: interaction.user.id,
             allow: [
               PermissionsBitField.Flags.ViewChannel,
-              PermissionsBitField.Flags.SendMessages,
-              PermissionsBitField.Flags.ReadMessageHistory
+              PermissionsBitField.Flags.SendMessages
             ]
           },
           {
             id: SUPORTE_ID,
             allow: [
               PermissionsBitField.Flags.ViewChannel,
-              PermissionsBitField.Flags.SendMessages,
-              PermissionsBitField.Flags.ReadMessageHistory
+              PermissionsBitField.Flags.SendMessages
             ]
           }
         ]
@@ -186,92 +197,56 @@ client.on("interactionCreate", async (interaction) => {
         new ButtonBuilder()
           .setCustomId("assumir_ticket")
           .setLabel("Assumir")
-          .setEmoji("👤")
           .setStyle(ButtonStyle.Primary),
 
         new ButtonBuilder()
           .setCustomId("fechar_ticket")
           .setLabel("Fechar")
-          .setEmoji("🔒")
           .setStyle(ButtonStyle.Danger)
       );
 
-      const embed = new EmbedBuilder()
-        .setColor(cor)
-        .setTitle(`🎫 Ticket ${tipo.toUpperCase()}`)
-        .addFields(
-          { name: "👤 Usuário", value: `${interaction.user}`, inline: true },
-          { name: "📂 Tipo", value: mensagem, inline: true }
-        )
-        .setDescription("Explique seu pedido e aguarde atendimento.")
-        .setFooter({ text: "HD STORE 🚀" });
-
       await canal.send({
         content: `<@${interaction.user.id}> <@&${SUPORTE_ID}>`,
-        embeds: [embed],
         components: [botoes]
       });
 
       return interaction.editReply({
-        content: "✅ Ticket criado com sucesso!"
+        content: "✅ Ticket criado!"
       });
     }
   }
 
-  // =====================
-  // 🔘 BOTÕES
-  // =====================
   if (interaction.isButton()) {
 
-    // 👤 ASSUMIR
     if (interaction.customId === "assumir_ticket") {
 
-      if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
-        return interaction.reply({
-          content: "❌ Apenas suporte pode assumir.",
-          ephemeral: true
-        });
-      }
+      if (!interaction.member.roles.cache.has(SUPORTE_ID)) return;
 
       const currentRow = interaction.message.components[0];
 
-      if (currentRow.components[0].disabled) {
-        return interaction.reply({
-          content: "❌ Já foi assumido.",
-          ephemeral: true
-        });
-      }
+      if (currentRow.components[0].disabled) return;
 
       const newRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId("assumir_ticket")
           .setLabel(`Assumido por ${interaction.user.username}`)
-          .setEmoji("✅")
           .setStyle(ButtonStyle.Success)
           .setDisabled(true),
 
         new ButtonBuilder()
           .setCustomId("fechar_ticket")
           .setLabel("Fechar")
-          .setEmoji("🔒")
           .setStyle(ButtonStyle.Danger)
       );
 
       await interaction.update({ components: [newRow] });
     }
 
-    // 🔒 FECHAR
     if (interaction.customId === "fechar_ticket") {
 
-      if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
-        return interaction.reply({
-          content: "❌ Apenas suporte pode fechar.",
-          ephemeral: true
-        });
-      }
+      if (!interaction.member.roles.cache.has(SUPORTE_ID)) return;
 
       await interaction.reply({
-        content: "🔒 Fechando ticket...",
+        content: "🔒 Fechando...",
         ephemeral: true
       });
 
@@ -285,24 +260,15 @@ client.on("interactionCreate", async (interaction) => {
         const logs = interaction.guild.channels.cache.get(LOGS_ID);
 
         if (logs) {
-          await logs.send({
-            embeds: [
-              new EmbedBuilder()
-                .setTitle("📁 Ticket Fechado")
-                .addFields(
-                  { name: "Canal", value: `${interaction.channel.name}` },
-                  { name: "Fechado por", value: `${interaction.user}` }
-                )
-                .setColor("Red")
-            ],
+          logs.send({
             files: [{
               attachment: transcript,
-              name: `ticket-${interaction.channel.name}.html`
+              name: `ticket.html`
             }]
           });
         }
 
-        await interaction.channel.delete();
+        interaction.channel.delete();
 
       }, 2000);
     }
