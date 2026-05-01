@@ -114,7 +114,7 @@ client.on("messageCreate", async (message) => {
     const estrelas = parseInt(args[0]);
     const texto = args.slice(1).join(" ");
 
-    if (isNaN(estrelas) || estrelas < 1 || estrelas > 5) return;
+    if (estrelas < 1 || estrelas > 5) return;
 
     const estrelasVisual = "⭐".repeat(estrelas);
 
@@ -131,15 +131,10 @@ client.on("messageCreate", async (message) => {
 
     const canal = message.guild.channels.cache.get(FEEDBACK_CHANNEL_ID);
 
-    if (canal) {
-      canal.send({ embeds: [embed] });
-    } else {
-      console.log("Canal de feedback não encontrado");
-    }
+    if (canal) canal.send({ embeds: [embed] });
 
     await message.delete().catch(() => {});
   }
-
 });
 
 // =====================
@@ -147,99 +142,113 @@ client.on("messageCreate", async (message) => {
 // =====================
 client.on("interactionCreate", async (interaction) => {
 
-  // MENU
+  // 🎫 CRIAR TICKET
   if (interaction.isStringSelectMenu()) {
 
-    await interaction.deferReply({ ephemeral: true });
+    if (interaction.customId !== "ticket_select") return;
 
-    if (interaction.customId === 'ticket_select') {
+    await interaction.reply({
+      content: "⏳ Criando seu ticket...",
+      ephemeral: true
+    });
 
-      const tipo = interaction.values[0];
+    const tipo = interaction.values[0];
 
-      const nomeUsuario = interaction.user.username
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '');
+    const nomeUsuario = interaction.user.username
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
 
-      const existente = interaction.guild.channels.cache.find(
-        c => c.name === `${tipo}-${nomeUsuario}`
-      );
+    const existente = interaction.guild.channels.cache.find(
+      c => c.name === `${tipo}-${nomeUsuario}`
+    );
 
-      if (existente) {
-        return interaction.editReply({
-          content: "❌ Você já tem um ticket aberto."
-        });
-      }
-
-      const canal = await interaction.guild.channels.create({
-        name: `${tipo}-${nomeUsuario}`,
-        type: ChannelType.GuildText,
-        parent: CATEGORIAS[tipo],
-        permissionOverwrites: [
-          {
-            id: interaction.guild.id,
-            deny: [PermissionsBitField.Flags.ViewChannel]
-          },
-          {
-            id: interaction.user.id,
-            allow: [
-              PermissionsBitField.Flags.ViewChannel,
-              PermissionsBitField.Flags.SendMessages
-            ]
-          },
-          {
-            id: SUPORTE_ID,
-            allow: [
-              PermissionsBitField.Flags.ViewChannel,
-              PermissionsBitField.Flags.SendMessages
-            ]
-          }
-        ]
-      });
-
-      // 🔥 EMBED DO TICKET (VOLTOU)
-      const embed = new EmbedBuilder()
-        .setColor("#2f3136")
-        .setTitle(`🎫 Ticket ${tipo.toUpperCase()}`)
-        .setDescription("Explique seu pedido e aguarde atendimento.")
-        .setFooter({ text: "HD STORE 🚀" });
-
-      const botoes = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("assumir_ticket")
-          .setLabel("Assumir")
-          .setStyle(ButtonStyle.Primary),
-
-        new ButtonBuilder()
-          .setCustomId("fechar_ticket")
-          .setLabel("Fechar")
-          .setStyle(ButtonStyle.Danger)
-      );
-
-      await canal.send({
-        content: `<@${interaction.user.id}> <@&${SUPORTE_ID}>`,
-        embeds: [embed],
-        components: [botoes]
-      });
-
-      return interaction.editReply({
-        content: "✅ Ticket criado!"
+    if (existente) {
+      return interaction.followUp({
+        content: "❌ Você já tem um ticket aberto.",
+        ephemeral: true
       });
     }
+
+    const canal = await interaction.guild.channels.create({
+      name: `${tipo}-${nomeUsuario}`,
+      type: ChannelType.GuildText,
+      parent: CATEGORIAS[tipo],
+      permissionOverwrites: [
+        {
+          id: interaction.guild.id,
+          deny: [PermissionsBitField.Flags.ViewChannel]
+        },
+        {
+          id: interaction.user.id,
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.ReadMessageHistory
+          ]
+        },
+        {
+          id: SUPORTE_ID,
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.ReadMessageHistory
+          ]
+        }
+      ]
+    });
+
+    const botoes = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("assumir_ticket")
+        .setLabel("Assumir")
+        .setEmoji("👤")
+        .setStyle(ButtonStyle.Primary),
+
+      new ButtonBuilder()
+        .setCustomId("fechar_ticket")
+        .setLabel("Fechar")
+        .setEmoji("🔒")
+        .setStyle(ButtonStyle.Danger)
+    );
+
+    const embed = new EmbedBuilder()
+      .setColor("#8A2BE2")
+      .setTitle(`🎫 Ticket ${tipo.toUpperCase()}`)
+      .setDescription("Explique seu pedido e aguarde atendimento.")
+      .addFields(
+        { name: "👤 Usuário", value: `${interaction.user}`, inline: true },
+        { name: "📂 Tipo", value: tipo, inline: true }
+      )
+      .setFooter({ text: "HD STORE 🚀" });
+
+    await canal.send({
+      content: `<@${interaction.user.id}> <@&${SUPORTE_ID}>`,
+      embeds: [embed],
+      components: [botoes]
+    });
+
+    return interaction.followUp({
+      content: "✅ Ticket criado com sucesso!",
+      ephemeral: true
+    });
   }
 
-  // BOTÕES
+  // 🔘 BOTÕES
   if (interaction.isButton()) {
 
     // 👤 ASSUMIR
     if (interaction.customId === "assumir_ticket") {
 
-      await interaction.deferUpdate(); // 🔥 corrige erro
-
-      if (!interaction.member.roles.cache.has(SUPORTE_ID)) return;
+      if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
+        return interaction.reply({
+          content: "❌ Apenas suporte pode assumir.",
+          ephemeral: true
+        });
+      }
 
       const newRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId("assumido")
+          .setCustomId("assumir_ticket")
           .setLabel(`Assumido por ${interaction.user.username}`)
           .setStyle(ButtonStyle.Success)
           .setDisabled(true),
@@ -250,16 +259,21 @@ client.on("interactionCreate", async (interaction) => {
           .setStyle(ButtonStyle.Danger)
       );
 
-      await interaction.message.edit({ components: [newRow] });
+      await interaction.update({ components: [newRow] });
     }
 
     // 🔒 FECHAR
     if (interaction.customId === "fechar_ticket") {
 
-      if (!interaction.member.roles.cache.has(SUPORTE_ID)) return;
+      if (!interaction.member.roles.cache.has(SUPORTE_ID)) {
+        return interaction.reply({
+          content: "❌ Apenas suporte pode fechar.",
+          ephemeral: true
+        });
+      }
 
       await interaction.reply({
-        content: "🔒 Fechando...",
+        content: "🔒 Fechando ticket...",
         ephemeral: true
       });
 
@@ -276,12 +290,12 @@ client.on("interactionCreate", async (interaction) => {
           logs.send({
             files: [{
               attachment: transcript,
-              name: `ticket.html`
+              name: `ticket-${interaction.channel.name}.html`
             }]
           });
         }
 
-        interaction.channel.delete();
+        await interaction.channel.delete();
 
       }, 2000);
     }
