@@ -19,14 +19,14 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildVoiceStates // 🔥 NOVO
   ]
 });
 
 // 🔐 CONFIG
 const SUPORTE_ID = "1493784454660096141";
 const LOGS_ID = "1499141431447650344";
-const FEEDBACK_CHANNEL_ID = "1499501012845592586";
 
 // 📂 CATEGORIAS
 const CATEGORIAS = {
@@ -44,9 +44,12 @@ client.once("ready", () => {
 // 📌 COMANDOS
 // =====================
 client.on("messageCreate", async (message) => {
+
   if (message.author.bot) return;
 
-  // 🎫 PAINEL
+  // =====================
+  // 🎫 COMANDO .ticket
+  // =====================
   if (message.content === ".ticket") {
 
     const embed = new EmbedBuilder()
@@ -85,12 +88,15 @@ client.on("messageCreate", async (message) => {
     await message.delete().catch(() => {});
   }
 
-  // 🔥 RENOMEAR
+  // =====================
+  // ✏️ COMANDO .r
+  // =====================
   if (message.content.startsWith(".r")) {
 
     if (!message.member.roles.cache.has(SUPORTE_ID)) return;
 
     const args = message.content.split(" ").slice(1);
+
     if (args.length < 1) return;
 
     const nome = args.join("-")
@@ -105,36 +111,58 @@ client.on("messageCreate", async (message) => {
     }
   }
 
-  // ⭐ FEEDBACK
-  if (message.content.startsWith(".feedback")) {
+  // =====================
+  // 🔇 COMANDO .mutar
+  // =====================
+  if (message.content === ".mutar") {
 
-    const args = message.content.split(" ").slice(1);
-    if (args.length < 2) return;
+    if (!message.member.roles.cache.has(SUPORTE_ID)) {
+      return message.reply("❌ Você não pode usar isso.");
+    }
 
-    const estrelas = parseInt(args[0]);
-    const texto = args.slice(1).join(" ");
+    const canal = message.member.voice.channel;
 
-    if (estrelas < 1 || estrelas > 5) return;
+    if (!canal) {
+      return message.reply("❌ Entre em uma call.");
+    }
 
-    const estrelasVisual = "⭐".repeat(estrelas);
+    canal.members.forEach(member => {
 
-    const embed = new EmbedBuilder()
-      .setColor("Gold")
-      .setTitle("⭐ Novo Feedback")
-      .addFields(
-        { name: "👤 Cliente", value: `${message.author}`, inline: true },
-        { name: "⭐ Avaliação", value: estrelasVisual, inline: true }
-      )
-      .setDescription(`💬 ${texto}`)
-      .setFooter({ text: "HD STORE 🚀" })
-      .setTimestamp();
+      if (!member.user.bot) {
+        member.voice.setMute(true).catch(() => {});
+      }
 
-    const canal = message.guild.channels.cache.get(FEEDBACK_CHANNEL_ID);
+    });
 
-    if (canal) canal.send({ embeds: [embed] });
-
-    await message.delete().catch(() => {});
+    message.channel.send("🔇 Todos foram mutados.");
   }
+
+  // =====================
+  // 🔊 COMANDO .desmutar
+  // =====================
+  if (message.content === ".desmutar") {
+
+    if (!message.member.roles.cache.has(SUPORTE_ID)) {
+      return message.reply("❌ Você não pode usar isso.");
+    }
+
+    const canal = message.member.voice.channel;
+
+    if (!canal) {
+      return message.reply("❌ Entre em uma call.");
+    }
+
+    canal.members.forEach(member => {
+
+      if (!member.user.bot) {
+        member.voice.setMute(false).catch(() => {});
+      }
+
+    });
+
+    message.channel.send("🔊 Todos foram desmutados.");
+  }
+
 });
 
 // =====================
@@ -142,98 +170,116 @@ client.on("messageCreate", async (message) => {
 // =====================
 client.on("interactionCreate", async (interaction) => {
 
+  // =====================
   // 🎫 CRIAR TICKET
+  // =====================
   if (interaction.isStringSelectMenu()) {
 
-    if (interaction.customId !== "ticket_select") return;
+    await interaction.deferReply({ ephemeral: true });
 
-    await interaction.reply({
-      content: "⏳ Criando seu ticket...",
-      ephemeral: true
-    });
+    if (interaction.customId === 'ticket_select') {
 
-    const tipo = interaction.values[0];
+      const tipo = interaction.values[0];
 
-    const nomeUsuario = interaction.user.username
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '');
+      const nomeUsuario = interaction.user.username
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
 
-    const existente = interaction.guild.channels.cache.find(
-      c => c.name === `${tipo}-${nomeUsuario}`
-    );
+      const existente = interaction.guild.channels.cache.find(
+        c => c.name === `${tipo}-${nomeUsuario}`
+      );
 
-    if (existente) {
-      return interaction.followUp({
-        content: "❌ Você já tem um ticket aberto.",
-        ephemeral: true
+      if (existente) {
+        return interaction.editReply({
+          content: "❌ Você já tem um ticket aberto."
+        });
+      }
+
+      let cor = "#ffffff";
+      let mensagem = "";
+
+      if (tipo === "suporte") {
+        cor = "#00FF7F";
+        mensagem = "🛠️ Suporte geral";
+      }
+
+      if (tipo === "aluguel") {
+        cor = "#8A2BE2";
+        mensagem = "🛒 Área de aluguel";
+      }
+
+      if (tipo === "vagas") {
+        cor = "#1E90FF";
+        mensagem = "👑 Vagas para equipe";
+      }
+
+      const canal = await interaction.guild.channels.create({
+        name: `${tipo}-${nomeUsuario}`,
+        type: ChannelType.GuildText,
+        parent: CATEGORIAS[tipo],
+        permissionOverwrites: [
+          {
+            id: interaction.guild.id,
+            deny: [PermissionsBitField.Flags.ViewChannel]
+          },
+          {
+            id: interaction.user.id,
+            allow: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages,
+              PermissionsBitField.Flags.ReadMessageHistory
+            ]
+          },
+          {
+            id: SUPORTE_ID,
+            allow: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages,
+              PermissionsBitField.Flags.ReadMessageHistory
+            ]
+          }
+        ]
+      });
+
+      const botoes = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("assumir_ticket")
+          .setLabel("Assumir")
+          .setEmoji("👤")
+          .setStyle(ButtonStyle.Primary),
+
+        new ButtonBuilder()
+          .setCustomId("fechar_ticket")
+          .setLabel("Fechar")
+          .setEmoji("🔒")
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      const embed = new EmbedBuilder()
+        .setColor(cor)
+        .setTitle(`🎫 Ticket ${tipo.toUpperCase()}`)
+        .addFields(
+          { name: "👤 Usuário", value: `${interaction.user}`, inline: true },
+          { name: "📂 Tipo", value: mensagem, inline: true }
+        )
+        .setDescription("Explique seu pedido e aguarde atendimento.")
+        .setFooter({ text: "HD STORE 🚀" });
+
+      await canal.send({
+        content: `<@${interaction.user.id}> <@&${SUPORTE_ID}>`,
+        embeds: [embed],
+        components: [botoes]
+      });
+
+      return interaction.editReply({
+        content: "✅ Ticket criado com sucesso!"
       });
     }
-
-    const canal = await interaction.guild.channels.create({
-      name: `${tipo}-${nomeUsuario}`,
-      type: ChannelType.GuildText,
-      parent: CATEGORIAS[tipo],
-      permissionOverwrites: [
-        {
-          id: interaction.guild.id,
-          deny: [PermissionsBitField.Flags.ViewChannel]
-        },
-        {
-          id: interaction.user.id,
-          allow: [
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages,
-            PermissionsBitField.Flags.ReadMessageHistory
-          ]
-        },
-        {
-          id: SUPORTE_ID,
-          allow: [
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages,
-            PermissionsBitField.Flags.ReadMessageHistory
-          ]
-        }
-      ]
-    });
-
-    const botoes = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("assumir_ticket")
-        .setLabel("Assumir")
-        .setEmoji("👤")
-        .setStyle(ButtonStyle.Primary),
-
-      new ButtonBuilder()
-        .setCustomId("fechar_ticket")
-        .setLabel("Fechar")
-        .setEmoji("🔒")
-        .setStyle(ButtonStyle.Danger)
-    );
-
-    const embed = new EmbedBuilder()
-      .setColor("#8A2BE2")
-      .setTitle(`🎫 Ticket ${tipo.toUpperCase()}`)
-      .setDescription("Explique seu pedido e aguarde atendimento.")
-      .addFields(
-        { name: "👤 Usuário", value: `${interaction.user}`, inline: true },
-        { name: "📂 Tipo", value: tipo, inline: true }
-      )
-      .setFooter({ text: "HD STORE 🚀" });
-
-    await canal.send({
-      content: `<@${interaction.user.id}> <@&${SUPORTE_ID}>`,
-      embeds: [embed],
-      components: [botoes]
-    });
-
-    return interaction.followUp({
-      content: "✅ Ticket criado com sucesso!",
-      ephemeral: true
-    });
   }
 
+  // =====================
   // 🔘 BOTÕES
+  // =====================
   if (interaction.isButton()) {
 
     // 👤 ASSUMIR
@@ -246,16 +292,27 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
+      const currentRow = interaction.message.components[0];
+
+      if (currentRow.components[0].disabled) {
+        return interaction.reply({
+          content: "❌ Já foi assumido.",
+          ephemeral: true
+        });
+      }
+
       const newRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("assumir_ticket")
           .setLabel(`Assumido por ${interaction.user.username}`)
+          .setEmoji("✅")
           .setStyle(ButtonStyle.Success)
           .setDisabled(true),
 
         new ButtonBuilder()
           .setCustomId("fechar_ticket")
           .setLabel("Fechar")
+          .setEmoji("🔒")
           .setStyle(ButtonStyle.Danger)
       );
 
@@ -287,12 +344,23 @@ client.on("interactionCreate", async (interaction) => {
         const logs = interaction.guild.channels.cache.get(LOGS_ID);
 
         if (logs) {
-          logs.send({
+
+          await logs.send({
+            embeds: [
+              new EmbedBuilder()
+                .setTitle("📁 Ticket Fechado")
+                .addFields(
+                  { name: "Canal", value: `${interaction.channel.name}` },
+                  { name: "Fechado por", value: `${interaction.user}` }
+                )
+                .setColor("Red")
+            ],
             files: [{
               attachment: transcript,
               name: `ticket-${interaction.channel.name}.html`
             }]
           });
+
         }
 
         await interaction.channel.delete();
